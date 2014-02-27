@@ -53,7 +53,7 @@
                     checkbox.$el.attr("name",this.formItemData.key);
 
                     checkboxLabel.$el.append(checkbox.render().el);
-                    checkboxLabel.$el.append(this.formItemData.options.value[i].label)
+                    checkboxLabel.$el.append(" "+this.formItemData.options.value[i].label)
                     $(this.el).append( checkboxLabel.render().el )
                 }
 
@@ -138,14 +138,20 @@
         initialize: function (data) {
             _.bindAll(this, "render");
            
-           this.$el.addClass("form-group");
+            this.$el.addClass("form-group");
 
-           this.formItemData = data;
+            this.formItemData = data;
 
-           this.formItem = new Backbone.View({tagName: "button"});
-           this.formItem.$el.addClass("btn btn-default");
-           this.formItem.$el.attr("type", "button")
-           this.formItem.$el.text(this.formItemData.options.label)
+            if(typeof this.formItemData.options.type   === 'undefined'){
+                this.formItemData.options.type = "default"
+            }
+
+            this.formItem = new Backbone.View({tagName: "button"});
+            this.formItem.$el.addClass("btn btn-"+this.formItemData.options.type);
+            this.formItem.$el.attr("type", "button")
+            this.formItem.$el.text(this.formItemData.options.label)
+
+           
 
         },
 
@@ -167,7 +173,9 @@
             _.bindAll(this, "render");
         
            this.$el.addClass("form-group");
-           this.formItemData = data;          
+           this.formItemData = data;   
+
+
         },
 
         render: function(){
@@ -175,7 +183,12 @@
         
             for(var i=0;i<this.formItemData.options.buttons.length;i++){
                 var btn = new Backbone.View({tagName: "button"});
-                btn.$el.addClass("btn btn-default");
+                console.log(this.formItemData.options.buttons[i])
+                if(typeof this.formItemData.options.buttons[i].type  === 'undefined'){
+                    this.formItemData.options.buttons[i].type = "default"
+                }
+
+                btn.$el.addClass("btn btn-"+this.formItemData.options.buttons[i].type);
                 btn.$el.attr("type", "button")
                 btn.$el.text(this.formItemData.options.buttons[i].label)
                  $(this.el).append(btn.render().el)
