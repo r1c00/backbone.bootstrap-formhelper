@@ -50,20 +50,33 @@ $(function() {
 
 		},
 
-		buttonTag: {
-			tag: "buttonGrp",
-			buttons:[
-				{label: "asd"},
-				{label: "asdasdasd"}
-			]
+		buttonTag1: {
+			tag: "button",
+			label: "Save",
+			type:"success",
+			event: "test"
+
 		},
+		
 		buttonTag2: {
 			tag: "button",
-			label: "Save"
+			label: "Save",
+			type:"success",
+			event: "send"
+
 		}
 	}
 
 	var x = new Backbone.Formhelper({el: "#form", formDesc:formDesc});
+
+	x.on("send", function(form){
+		console.log(form.getFormData())
+	})
+
+	x.on("test", function(form){
+		console.log("test")
+	})
+
 
 	x.render()
 
