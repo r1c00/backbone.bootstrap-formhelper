@@ -2,12 +2,12 @@
 
 
 
-    ValidatorHelper = function (validators, value) {
+    ValidationHelper = function (validators, value) {
         this.validators = validators;
         this.itemValue = value;
     }
 
-    ValidatorHelper.prototype.validate = function () {
+    ValidationHelper.prototype.validate = function () {
 
         for (va in this.validators) {
             if (typeof this[va] === "function") {
@@ -24,7 +24,7 @@
         return true;
     }
 
-    ValidatorHelper.prototype.required = function () {
+    ValidationHelper.prototype.required = function () {
         if (typeof this.itemValue === "undefined" || this.itemValue.length == 0) {
             return false;
         }
@@ -75,7 +75,7 @@
                 }
             }
 
-            var va = new ValidatorHelper(this.data.options.validators, this.getItemValue());
+            var va = new ValidationHelper(this.data.options.validators, this.getItemValue());
             var isValid = va.validate();
 
             if (!isValid) {

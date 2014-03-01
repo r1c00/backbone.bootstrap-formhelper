@@ -2,51 +2,76 @@ $(function() {
 
 	//var formDesc = [{tag: "input",  label:"Zonename",   name:"zonename",    type:"text"}]
 	var formDesc = {
-		inputTag: {
+		username: {
 			label: "Username",
 			value: "",
-			placeholder: "Username"
+			placeholder: "Username",
+			validators:{
+				required:true,
+				message: "Username must be set!"
+			}
 		},
 
-		inputTag2:{
+		password:{
 			label: "Password",
-			type: "password"
+			type: "password",
+			validators:{
+				required:true,
+				message: "Password must be set!"
+			}
 		},
 
 		checkboxTag: {
-			type: "checkbox",
+			tag: "checkboxGrp",
 			label: "Checkbox Bla",
 			value: [
 				{label: "Label 1", value:"val1"},
 				{label: "Label 2", value:"val2"},
 				{label: "Label 3", value:"val3"}
-			]
+			],
+			validators:{
+				required:true,
+				message: "checkboxTag must be set!"
+			}
 		},
 
 		radioTag: {
-			type: "radio",
+			tag:"radioGrp",
 			label: "Radio",
 			value: [
 				{label: "Label 1", value:"val1"},
 				{label: "Label 2", value:"val2"},
 				{label: "Label 3", value:"val3"}
-			]
+			],
+			validators:{
+				required:true,
+				message: "radioTag must be set!"
+			}
 		},
 
 		textareaTag: {
 			label: "Textarea",
 			tag: "textarea",
-			rows: 3
+			rows: 5,
+			validators:{
+				required:true,
+				message: "textareaTag must be set!"
+			}
 		},
 
 		selectTag: {
 			tag: "select",
 			label: "Select",
 			value: [
+				{label: "", value:""},
 				{label: "Label 1", value:"val1"},
 				{label: "Label 2", value:"val2"},
 				{label: "Label 3", value:"val3"}
-			]
+			],
+			validators:{
+				required:true,
+				message: "selectTag must be set!"
+			}
 
 		},
 
@@ -67,10 +92,44 @@ $(function() {
 		}
 	}
 
-	var x = new Backbone.Formhelper({el: "#form", formDesc:formDesc});
+
+	var loginForm =  {
+		username:{
+			label: "Username",
+			validators:{
+				required:true,
+				message: "The user must be given."
+			}
+		},
+
+		password:{
+			label: "Password",
+			type: "password",
+			validators:{
+				required:true,
+				message: "The password must be given."
+			}
+		},
+
+		btnSave: {
+			tag: "button",
+			label: "Login",
+			type:"success",
+			event: "send"
+
+		}
+	}
+
+	var x = new Backbone.Formhelper({formTitle: "Login", el: "#form", formDesc:loginForm});
 
 	x.on("send", function(form){
-		console.log(form.getFormData())
+//		console.log(form.validateForm());
+
+		if(form.validateForm()){
+			alert("form vaild")
+			console.log(form.getData());
+		}
+		
 	})
 
 	x.on("test", function(form){
