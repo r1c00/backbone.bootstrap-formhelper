@@ -1,344 +1,471 @@
-(function($, _, Backbone) {
+(function ($, _, Backbone) {
 
 
 
-    var InputTag = Backbone.View.extend({
+    ValidatorHelper = function (validators, value) {
+        this.validators = validators;
+        this.itemValue = value;
+    }
+
+    ValidatorHelper.prototype.validate = function () {
+
+        for (va in this.validators) {
+            if (typeof this[va] === "function") {
+                if (this[va]() == false) {
+                    return false;
+                }
+            } else {
+                if(va != "message"){
+                    console.log("WARN: Validator not found: " + va)
+                }
+            }
+        }
+
+        return true;
+    }
+
+    ValidatorHelper.prototype.required = function () {
+        if (typeof this.itemValue === "undefined" || this.itemValue.length == 0) {
+            return false;
+        }
+        return true;
+    }
+
+
+    /* 
+     * Default FromGroup Bootstrap
+     */
+    var FromGrp = Backbone.View.extend({
         tagName: "div",
 
         initialize: function (data) {
-            _.bindAll(this, "render","getItemValue");
-           
-           this.$el.addClass("form-group");
+            this.$el.addClass("form-group");
+            this.formEl = $('<' + this.formTag + '>');
 
-           this.formItemData = data;
+            this.initializeFormItem(data);
 
-           this.formItem = new Backbone.View({tagName: "input"});
-           this.formItem.$el.addClass("form-control");
+            this.data = data;
 
-           if(typeof this.formItemData.options.type === "undefined"){
-                this.formItemData.options.type = "text"
-           }
+
         },
 
-        render: function(){
-           
-            if(typeof this.formItemData.options.value != "undefined"){
-                this.formItem.$el.attr("value",this.formItemData.options.value)
-            }
-
-            if(typeof this.formItemData.options.placeholder != "undefined"){
-                this.formItem.$el.attr("placeholder",this.formItemData.options.placeholder)
-            }
-
-            this.formItem.$el.attr("type",this.formItemData.options.type);
-
-            // class for checkboxes 
-            if(this.formItemData.options.type == "checkbox" || this.formItemData.options.type == "radio"){
 
 
-                this.formItem.$el.removeClass("form-control")
+        render: function () {
+            //console.log("FromGrp render")
 
-                if(this.formItemData.options.label){
-                    $(this.el).html('<label for="'+formKey+'">'+this.formItemData.options.label+'</label><br>')
-                }
+            $(this.el).html('<label for="' + this.data.key + '">' + this.data.options.label + '</label>')
+            $(this.el).append(this.renderFormItem())
 
-                for(var i=0;i<this.formItemData.options.value.length;i++){
-                    var checkboxLabel = new Backbone.View({tagName: "label"});
-                    var checkbox = new Backbone.View({tagName: "input"});
-
-                    checkboxLabel.$el.addClass("checkbox-inline");
-
-                    checkbox.$el.attr("type", this.formItemData.options.type);
-                    checkbox.$el.attr("value",this.formItemData.options.value[i].value);
-                    checkbox.$el.attr("name",this.formItemData.key);
-
-                    checkboxLabel.$el.append(checkbox.render().el);
-                    checkboxLabel.$el.append(" "+this.formItemData.options.value[i].label)
-                    $(this.el).append( checkboxLabel.render().el )
-                }
-
-            }else{
-                var formKey = this.formItemData.key;
-                this.formItem.$el.attr("name",formKey)
-                $(this.el).html('<label for="'+formKey+'">'+this.formItemData.options.label+'</label>')
-                $(this.el).append(this.formItem.render().el)
-            }
             return this;
         },
 
-        getItemValue: function(){
-            
-            if(this.formItemData.options.type == "checkbox"){
-                var values = new Array();
-                $( "input[name='"+this.formItemData.key+"']:checked", this.el).each(function(index, obj) {
-                    values.push($(obj).val())
-                });
+        getItemValue: function () {
+            return $(this.formEl).val();
+        },
 
-                
-                return {key: this.formItemData.key, value: values}
-            }else if(this.formItemData.options.type == "radio"){
-                var val =  $( "input[name='"+this.formItemData.key+"']:checked", this.el).val();
+        validateItem: function () {
+            $(this.el).removeClass("has-success")
+            $(this.el).removeClass("has-error")
 
-                if( typeof val === "undefined"){
-                    return {key: this.formItemData.key, value:  "" }
+            if (typeof this.data.options.validators === "undefined") {
+                $(this.el).addClass("has-success")
+                return {
+                    valid: true
                 }
-                return  {key: this.formItemData.key, value:  $( "input[name='"+this.formItemData.key+"']:checked", this.el).val() }
-            }else{
-                return  {key: this.formItemData.key, value: this.formItem.$el.val()}
+            }
+
+            var va = new ValidatorHelper(this.data.options.validators, this.getItemValue());
+            var isValid = va.validate();
+
+            if (!isValid) {
+                $(this.el).addClass("has-error")
+            } else {
+                $(this.el).addClass("has-success")
+            }
+
+            return {
+                valid: isValid,
+                message: this.data.options.validators.message
             }
         }
     });
 
-    var TextareaTag = Backbone.View.extend({
-        tagName: "div",
+    /**
+     * Basic InputTag
+     */
+    var InputTag = FromGrp.extend({
+        formTag: "input",
 
-        events:{
-        },
+        initializeFormItem: function (data) {
+            _.bindAll(this, "renderFormItem");
+            //console.log("initializeInputTag")
 
+            this.formEl.addClass("form-control")
 
-        initialize: function (data) {
-            _.bindAll(this, "render", "getItemValue");
-           
-           this.$el.addClass("form-group");
-
-           this.formItemData = data;
-
-           this.formItem = new Backbone.View({tagName: "textarea"});
-           this.formItem.$el.addClass("form-control");
-
-        },
-
-        render: function(){
-            var formKey = this.formItemData.key;
-            this.formItem.$el.attr("name",formKey)
-            this.formItem.$el.attr("rows",this.formItemData.options.rows)
-            $(this.el).html('<label for="'+formKey+'">'+this.formItemData.options.label+'</label>')
-            $(this.el).append(this.formItem.render().el)
-            return this;
-        }, 
-
-        getItemValue: function(){
-            return  {key: this.formItemData.key, value: this.formItem.$el.val()}
-        }
-    });
-
-    var SelectTag = Backbone.View.extend({
-        tagName: "div",
-
-        initialize: function (data) {
-            _.bindAll(this, "render", "getItemValue");
-           
-           this.$el.addClass("form-group");
-
-           this.formItemData = data;
-
-
-        },
-
-        render: function(){
-            var formKey = this.formItemData.key;
-            $(this.el).html('<label for="'+formKey+'">'+this.formItemData.options.label+'</label><br>')
-
-            this.selectTag =  new Backbone.View({tagName: "select"});
-            this.selectTag.$el.addClass("form-control")
-
-            for(var i=0;i<this.formItemData.options.value.length;i++){
-                var selectOption = new Backbone.View({tagName: "option"});
-                selectOption.$el.val(this.formItemData.options.value[i].value)
-                selectOption.$el.text(this.formItemData.options.value[i].label)
-                this.selectTag.$el.append( selectOption.render().el )
+            if (typeof data.options.type === "undefined") {
+                data.options.type = "text"
             }
 
-            $(this.el).append(this.selectTag.render().el)
+        },
 
-            return this;
-        }, 
+        renderFormItem: function () {
+            //console.log("renderFormItem")
 
-        getItemValue: function(){
-            return  {key: this.formItemData.key, value: this.selectTag.$el.val()}
+            this.formEl.attr("name", this.data.key)
+            this.formEl.attr("type", this.data.options.type)
+
+            return this.formEl;
         }
     });
 
+    /**
+     * Basic TextareaTag
+     */
+    var TextareaTag = FromGrp.extend({
+        formTag: "textarea",
 
-    var ButtonTag = Backbone.View.extend({
-        tagName: "div",
+        initializeFormItem: function (data) {
+            _.bindAll(this, "renderFormItem");
+            //console.log("initializeInputTag")
 
-        events:{
+            this.formEl.addClass("form-control")
+
+
+        },
+
+        renderFormItem: function () {
+            // console.log("renderFormItem")
+
+            this.formEl.attr("name", this.data.key)
+            this.formEl.attr("rows", this.data.options.rows)
+
+            return this.formEl;
+        }
+    });
+
+    /**
+     * Basic ButtonTag
+     */
+    var ButtonTag = FromGrp.extend({
+        formTag: "button",
+
+        events: {
             "click button": "onClick"
         },
 
-        initialize: function (data) {
+        initializeFormItem: function (render) {
             _.bindAll(this, "render", "onClick");
-           
-            this.$el.addClass("form-group");
-
-            this.formItemData = data;
-
-
-            if(typeof this.formItemData.options.type   === 'undefined'){
-                this.formItemData.options.type = "default"
-            }
-
-            this.formItem = new Backbone.View({tagName: "button"});
-            this.formItem.$el.addClass("btn btn-"+this.formItemData.options.type);
-            this.formItem.$el.attr("type", "button")
-            this.formItem.$el.text(this.formItemData.options.label)
-
-           
-
+            //console.log("initializeInputTag")
         },
 
-        render: function(){
-            var formKey = this.formItemData.key;
-            this.formItem.$el.attr("name",formKey)
-            
-            $(this.el).append(this.formItem.render().el)
+        render: function () {
+            //console.log("renderFormItem")
 
+
+
+            this.formEl.addClass("btn btn-" + this.data.options.type);
+            this.formEl.attr("type", "button")
+            this.formEl.text(this.data.options.label)
+
+
+            $(this.el).append(this.formEl)
             return this;
         },
 
-        onClick: function(){
-            if(typeof this.formItemData.options.event === "undefined"){
+        onClick: function () {
+            if (typeof this.data.options.event === "undefined") {
                 return;
             }
 
-            this.formItemData.myForm.trigger(this.formItemData.options.event, this.formItemData.myForm)
+            this.data.myForm.trigger(this.data.options.event, this.data.myForm)
         },
-        getItemValue: function(){
-            return  null;
-        }
+
+        getItemValue: function () {
+            //console.log("Value: "+$(this.formEl).val())
+        },
+
     });
 
 
-    var ButtonGrpTag = Backbone.View.extend({
-        tagName: "div",
+    /**
+     * Html Radio Group
+     */
+    var RadioGrp = FromGrp.extend({
 
-        events:{
-            "click button": "onClick"
-        },
-
-        initialize: function (data) {
-            _.bindAll(this, "render","onClick");
-        
-           this.$el.addClass("form-group");
-           this.formItemData = data;   
-
+        initializeFormItem: function (data) {
+            _.bindAll(this, "renderFormItem");
 
         },
 
-        onClick: function(){
-            console.log(this.formItemData)
-            alert("Button Click")
-        },
+        renderFormItem: function () {
+            // console.log("renderFormItem")
 
-        render: function(){
-            var formKey = this.formItemData.key;
-        
-            for(var i=0;i<this.formItemData.options.buttons.length;i++){
-                var btn = new Backbone.View({tagName: "button"});
-                console.log(this.formItemData.options.buttons[i])
-                if(typeof this.formItemData.options.buttons[i].type  === 'undefined'){
-                    this.formItemData.options.buttons[i].type = "default"
-                }
+            $(this.el).append("<br>")
 
-                btn.$el.addClass("btn btn-"+this.formItemData.options.buttons[i].type);
-                btn.$el.attr("type", "button")
-                btn.$el.text(this.formItemData.options.buttons[i].label)
-                $(this.el).append(btn.render().el)
+            for (var i = 0; i < this.data.options.value.length; i++) {
+                var label = $("<label>");
+                var input = $("<input>");
+
+                label.addClass("radio-inline")
+                input.attr("type", "radio")
+                input.attr("name", this.data.key)
+                input.attr("value", this.data.options.value[i].value)
+
+                label.append(input);
+                label.append(" " + this.data.options.value[i].label);
+                $(this.el).append(label);
             }
 
             return this;
-        }
+        },
+
+        getItemValue: function () {
+
+            var itemData = $("input[name='" + this.data.key + "']:checked", this.el).val();
+
+            if (typeof itemData === "undefined") {
+                return new Array();
+            }
+            return itemData
+        },
     });
 
+    /**
+     * Html Checkbox Group
+     */
+    var CheckboxGrp = FromGrp.extend({
+
+        initializeFormItem: function (data) {
+            _.bindAll(this, "renderFormItem");
+
+        },
+
+        renderFormItem: function () {
+            // console.log("renderFormItem")
+
+            $(this.el).append("<br>")
+
+            for (var i = 0; i < this.data.options.value.length; i++) {
+                var label = $("<label>");
+                var input = $("<input>");
+
+                label.addClass("checkbox-inline")
+                input.attr("type", "checkbox")
+                input.attr("name", this.data.key)
+                input.attr("value", this.data.options.value[i].value)
+
+                label.append(input);
+                label.append(" " + this.data.options.value[i].label);
+                $(this.el).append(label);
+            }
+
+            return this;
+        },
+
+        getItemValue: function () {
+            var dataArr = new Array();
+            $("input[name='" + this.data.key + "']:checked", this.el).each(function (index) {
+                dataArr.push($(this).val());
+            });
+            return dataArr;
+        },
+    });
+
+    /**
+     * Basic SelectTag
+     */
+    var SelectTag = FromGrp.extend({
+        formTag: "select",
+
+        initializeFormItem: function (data) {
+            _.bindAll(this, "renderFormItem");
+            //console.log("initializeInputTag")
+
+            this.formEl.addClass("form-control")
+
+        },
+
+        renderFormItem: function () {
+            //console.log("renderFormItem")
+
+            this.formEl.attr("name", this.data.key)
+
+            for (var i = 0; i < this.data.options.value.length; i++) {
+                var selectOption = new Backbone.View({
+                    tagName: "option"
+                });
+                selectOption.$el.val(this.data.options.value[i].value)
+                selectOption.$el.text(this.data.options.value[i].label)
+                this.formEl.append(selectOption.render().el)
+            }
+
+
+            return this.formEl;
+        }
+
+
+    });
 
     var FormView = Backbone.View.extend({
-  		tagName: "form",
-  		events:{
-  		},
+        tagName: "form",
+        events: {},
 
 
         initialize: function (data) {
-            _.bindAll(this, "render", 
-                            "buildForm");
-           
-           this.formDesc = data.formDesc;
+            _.bindAll(this, "render", "renderFormAlert",
+                "buildForm",
+                "validateForm");
 
-           this.bind( "send", data.sendCallback);
-    
+            this.formDesc = data.formDesc;
+            this.formTitle = data.formTitle;
+
+            this.bind("send", data.sendCallback);
+
         },
 
 
-        buildForm: function(){
+        buildForm: function () {
 
             this.formItemViews = new Array();
 
 
-            for(formItemKey in this.formDesc){
+            for (formItemKey in this.formDesc) {
 
                 // check tag exist
-                if(typeof this.formDesc[formItemKey].tag  === 'undefined'){
+                if (typeof this.formDesc[formItemKey].tag === 'undefined') {
                     this.formDesc[formItemKey].tag = "input"
                 }
 
-                switch(this.formDesc[formItemKey].tag){
-                    case "input":
-                        this.formItemViews.push(new InputTag({key: formItemKey, options: this.formDesc[formItemKey], myForm: this}))
+                switch (this.formDesc[formItemKey].tag) {
+                case "input":
+                    this.formItemViews.push(new InputTag({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
                     break
 
-                    case "textarea":
-                        this.formItemViews.push(new TextareaTag({key: formItemKey, options: this.formDesc[formItemKey], myForm: this}))
+                case "textarea":
+                    this.formItemViews.push(new TextareaTag({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
                     break
 
-                    case "select":
-                        this.formItemViews.push(new SelectTag({key: formItemKey, options: this.formDesc[formItemKey], myForm: this}))
+                case "select":
+                    this.formItemViews.push(new SelectTag({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
                     break
 
-                    case "button":
-                        this.formItemViews.push(new ButtonTag({key: formItemKey, options: this.formDesc[formItemKey], myForm: this}))
+                case "button":
+                    this.formItemViews.push(new ButtonTag({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
                     break
 
-                    case "buttonGrp":
-                        this.formItemViews.push(new ButtonGrpTag({key: formItemKey, options: this.formDesc[formItemKey], myForm: this}))
+                case "buttonGrp":
+                    this.formItemViews.push(new ButtonGrpTag({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
+                    break
+
+                case "radioGrp":
+                    this.formItemViews.push(new RadioGrp({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
+                    break
+
+                case "checkboxGrp":
+                    this.formItemViews.push(new CheckboxGrp({
+                        key: formItemKey,
+                        options: this.formDesc[formItemKey],
+                        myForm: this
+                    }))
                     break
                 }
 
-                //console.log(formItemKey)
-                //console.log(typeof this.formDesc[formItemKey].tag)
             }
         },
 
 
-        getFormData: function(){
+        getData: function () {
             var formData = new Object();
 
-            for(var i=0;i<this.formItemViews.length;i++){
-                if(this.formItemViews[i].getItemValue() != null){
-                    formData[this.formItemViews[i].getItemValue().key] = this.formItemViews[i].getItemValue().value;
+            for (var i = 0; i < this.formItemViews.length; i++) {
+                if (this.formItemViews[i].getItemValue() != null) {
+                    formData[this.formItemViews[i].data.key] = this.formItemViews[i].getItemValue();
                 }
             }
             return formData
         },
 
-        
-        render: function(){  	
-          
+
+        validateForm: function () {
+
+            var errMessages = new Array();
+            var isValid = true;
+
+            for (var i = 0; i < this.formItemViews.length; i++) {
+                var validationItem = this.formItemViews[i].validateItem();
+                if (!validationItem.valid) {
+                    if (typeof validationItem.message != "undefined") {
+                        errMessages.push(validationItem.message);
+                    }
+                    isValid = false;
+                }
+            }
+
+            this.renderFormAlert(errMessages);
+            return isValid;
+
+        },
+
+
+
+        render: function () {
+
             this.buildForm();
 
-            for(var i=0;i<this.formItemViews.length;i++){
+            $(this.el).html("<h2>" + this.formTitle + "</h2>")
+            $(this.el).append('<div class="form-alert"></div>')
+
+            for (var i = 0; i < this.formItemViews.length; i++) {
                 $(this.el).append(this.formItemViews[i].render().el)
             }
 
-   
-        	
-        	return this;
-        	
+
+
+            return this;
+
+        },
+
+        renderFormAlert: function (messages) {
+            if (messages.length > 0) {
+                $(".form-alert", this.el).html('<div class="alert alert-danger"><ul></ul></div>')
+
+                for (var i = 0; i < messages.length; i++) {
+                    $(".form-alert ul", this.el).append("<li>" + messages[i] + "</li>")
+                }
+
+            } else {
+                $(".form-alert", this.el).html("");
+            }
         }
     });
 
-  
+
     Backbone.Formhelper = FormView;
 
 
 })(jQuery, _, Backbone);
-
